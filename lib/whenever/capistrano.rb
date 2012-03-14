@@ -13,7 +13,7 @@ Capistrano::Configuration.instance(:must_exist).load do
   # Write the new cron jobs near the end.
   before "deploy:restart", "whenever:update_crontab"
   # If anything goes wrong, undo.
-  after "deploy:rollback", "whenever:update_crontab"
+  after "deploy:rollback", "whenever:rollback_crontab"
 
   namespace :whenever do
     desc <<-DESC
@@ -41,7 +41,14 @@ Capistrano::Configuration.instance(:must_exist).load do
           end
         end
 
-        run "cd #{fetch :current_path} && #{fetch :whenever_command} #{fetch :whenever_update_flags}", options
+        run "cd #{fetch :latest_release} && #{fetch :whenever_command} #{fetch :whenever_update_flags}", options
+      end
+    end
+
+    task :rollback_crontab do
+      options = fetch(:whenever_options)
+      if find_servers(options).any?
+        run "cd #{fetch :previous_release} && #{fetch :whenever_command} #{fetch :whenever_update_flags}", options
       end
     end
 
